@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, CreditCard, Users, AlertTriangle, CheckCircle, Calendar, DollarSign, TrendingDown, TrendingUp } from 'lucide-react'
+import { Plus, CreditCard, Users, AlertTriangle, CheckCircle, Calendar, DollarSign, TrendingDown, TrendingUp, Edit3, Trash2, MoreHorizontal } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { LoadingSpinner } from './ui/loading-spinner'
 
@@ -68,6 +68,8 @@ export function DebtManagement() {
   const [activeTab, setActiveTab] = useState('overview')
   const [showAddDebt, setShowAddDebt] = useState(false)
   const [showAddPayment, setShowAddPayment] = useState<string | null>(null)
+  const [showMenu, setShowMenu] = useState<string | null>(null)
+  const [editingDebt, setEditingDebt] = useState<Debt | null>(null)
   
   const [debtFormData, setDebtFormData] = useState({
     name: '',
@@ -175,6 +177,58 @@ export function DebtManagement() {
       }
     } catch (error) {
       console.error('Error adding payment:', error)
+    }
+  }
+
+  const handleDeleteDebt = async (debtId: string) => {
+    if (!confirm('คุณแน่ใจหรือไม่ที่จะลบหนี้นี้? การดำเนินการนี้จะลบรายการชำระทั้งหมดด้วย')) return
+
+    try {
+      const response = await fetch(`/api/debts/${debtId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        fetchDebts()
+        fetchSummary()
+        setShowMenu(null)
+      }
+    } catch (error) {
+      console.error('Error deleting debt:', error)
+    }
+  }
+
+  const handleEditDebt = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!editingDebt) return
+
+    try {
+      const response = await fetch(`/api/debts/${editingDebt.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(debtFormData),
+      })
+
+      if (response.ok) {
+        fetchDebts()
+        fetchSummary()
+        setEditingDebt(null)
+        setDebtFormData({
+          name: '',
+          type: 'OWE',
+          totalAmount: '',
+          interestRate: '',
+          creditorName: '',
+          description: '',
+          startDate: new Date().toISOString().split('T')[0],
+          dueDate: '',
+        })
+      }
+    } catch (error) {
+      console.error('Error updating debt:', error)
     }
   }
 
@@ -404,6 +458,48 @@ export function DebtManagement() {
                           ชำระ
                         </button>
                       )}
+                      
+                      {/* Action Menu */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowMenu(showMenu === debt.id ? null : debt.id)}
+                          className="p-1 rounded-full hover:bg-gray-200 transition-colors"
+                        >
+                          <MoreHorizontal className="h-4 w-4 text-gray-500" />
+                        </button>
+                        
+                        {showMenu === debt.id && (
+                          <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
+                            <button
+                              onClick={() => {
+                                setEditingDebt(debt)
+                                setDebtFormData({
+                                  name: debt.name,
+                                  type: debt.type,
+                                  totalAmount: debt.totalAmount.toString(),
+                                  interestRate: debt.interestRate?.toString() || '',
+                                  creditorName: debt.creditorName || '',
+                                  description: debt.description || '',
+                                  startDate: debt.startDate.split('T')[0],
+                                  dueDate: debt.dueDate?.split('T')[0] || '',
+                                })
+                                setShowMenu(null)
+                              }}
+                              className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                            >
+                              <Edit3 className="h-3 w-3" />
+                              <span>แก้ไข</span>
+                            </button>
+                            <button
+                              onClick={() => handleDeleteDebt(debt.id)}
+                              className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              <span>ลบ</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -492,12 +588,14 @@ export function DebtManagement() {
       </div>
 
       {/* Add Debt Modal */}
-      {showAddDebt && (
+      {(showAddDebt || editingDebt) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">เพิ่มหนี้ใหม่</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              {editingDebt ? 'แก้ไขหนี้' : 'เพิ่มหนี้ใหม่'}
+            </h3>
             
-            <form onSubmit={handleAddDebt} className="space-y-4">
+            <form onSubmit={editingDebt ? handleEditDebt : handleAddDebt} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   ชื่อหนี้
@@ -622,7 +720,20 @@ export function DebtManagement() {
               <div className="flex space-x-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setShowAddDebt(false)}
+                  onClick={() => {
+                    setShowAddDebt(false)
+                    setEditingDebt(null)
+                    setDebtFormData({
+                      name: '',
+                      type: 'OWE',
+                      totalAmount: '',
+                      interestRate: '',
+                      creditorName: '',
+                      description: '',
+                      startDate: new Date().toISOString().split('T')[0],
+                      dueDate: '',
+                    })
+                  }}
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                 >
                   ยกเลิก
@@ -631,7 +742,7 @@ export function DebtManagement() {
                   type="submit"
                   className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
                 >
-                  เพิ่มหนี้
+                  {editingDebt ? 'อัปเดต' : 'เพิ่มหนี้'}
                 </button>
               </div>
             </form>

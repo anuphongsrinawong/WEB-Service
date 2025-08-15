@@ -22,16 +22,17 @@ export async function DELETE(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    await prisma.goal.delete({
+    // Delete debt and all related payments (cascade)
+    await prisma.debt.delete({
       where: {
         id: params.id,
-        userId: user.id,
+        userId: user.id, // Ensure user owns this debt
       },
     })
 
-    return NextResponse.json({ message: 'Goal deleted successfully' })
+    return NextResponse.json({ message: 'Debt deleted successfully' })
   } catch (error) {
-    console.error('Error deleting goal:', error)
+    console.error('Error deleting debt:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -56,25 +57,39 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { name, targetAmount, currentAmount, description, targetDate } = body
+    const { 
+      name, 
+      totalAmount, 
+      interestRate, 
+      creditorName, 
+      description, 
+      dueDate 
+    } = body
 
-    const goal = await prisma.goal.update({
+    const updatedDebt = await prisma.debt.update({
       where: {
         id: params.id,
         userId: user.id,
       },
       data: {
         name,
-        targetAmount: targetAmount ? parseFloat(targetAmount) : undefined,
-        currentAmount: currentAmount !== undefined ? parseFloat(currentAmount) : undefined,
+        totalAmount: totalAmount ? parseFloat(totalAmount) : undefined,
+        interestRate: interestRate ? parseFloat(interestRate) : undefined,
+        creditorName,
         description,
-        targetDate: targetDate ? new Date(targetDate) : undefined,
+        dueDate: dueDate ? new Date(dueDate) : undefined,
+      },
+      include: {
+        payments: {
+          orderBy: { paymentDate: 'desc' },
+          take: 5,
+        },
       },
     })
 
-    return NextResponse.json(goal)
+    return NextResponse.json(updatedDebt)
   } catch (error) {
-    console.error('Error updating goal:', error)
+    console.error('Error updating debt:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

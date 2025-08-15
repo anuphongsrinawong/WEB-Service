@@ -22,16 +22,16 @@ export async function DELETE(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    await prisma.goal.delete({
+    await prisma.budget.delete({
       where: {
         id: params.id,
         userId: user.id,
       },
     })
 
-    return NextResponse.json({ message: 'Goal deleted successfully' })
+    return NextResponse.json({ message: 'Budget deleted successfully' })
   } catch (error) {
-    console.error('Error deleting goal:', error)
+    console.error('Error deleting budget:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -56,25 +56,28 @@ export async function PATCH(
     }
 
     const body = await request.json()
-    const { name, targetAmount, currentAmount, description, targetDate } = body
+    const { name, amount, categoryId, startDate, endDate } = body
 
-    const goal = await prisma.goal.update({
+    const budget = await prisma.budget.update({
       where: {
         id: params.id,
         userId: user.id,
       },
       data: {
         name,
-        targetAmount: targetAmount ? parseFloat(targetAmount) : undefined,
-        currentAmount: currentAmount !== undefined ? parseFloat(currentAmount) : undefined,
-        description,
-        targetDate: targetDate ? new Date(targetDate) : undefined,
+        amount: amount ? parseFloat(amount) : undefined,
+        categoryId: categoryId || null,
+        startDate: startDate ? new Date(startDate) : undefined,
+        endDate: endDate ? new Date(endDate) : undefined,
+      },
+      include: {
+        category: true,
       },
     })
 
-    return NextResponse.json(goal)
+    return NextResponse.json(budget)
   } catch (error) {
-    console.error('Error updating goal:', error)
+    console.error('Error updating budget:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

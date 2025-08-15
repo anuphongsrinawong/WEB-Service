@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Target, AlertTriangle, CheckCircle } from 'lucide-react'
+import { Plus, Target, AlertTriangle, CheckCircle, Edit3, Trash2, MoreHorizontal } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { LoadingSpinner } from './ui/loading-spinner'
 
@@ -33,6 +33,8 @@ export function BudgetManagement() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddBudget, setShowAddBudget] = useState(false)
+  const [showMenu, setShowMenu] = useState<string | null>(null)
+  const [editingBudget, setEditingBudget] = useState<Budget | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     amount: '',
@@ -97,6 +99,53 @@ export function BudgetManagement() {
       }
     } catch (error) {
       console.error('Error creating budget:', error)
+    }
+  }
+
+  const handleDeleteBudget = async (budgetId: string) => {
+    if (!confirm('คุณแน่ใจหรือไม่ที่จะลบงบประมาณนี้?')) return
+
+    try {
+      const response = await fetch(`/api/budgets/${budgetId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        fetchBudgets()
+        setShowMenu(null)
+      }
+    } catch (error) {
+      console.error('Error deleting budget:', error)
+    }
+  }
+
+  const handleEditBudget = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!editingBudget) return
+
+    try {
+      const response = await fetch(`/api/budgets/${editingBudget.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      if (response.ok) {
+        fetchBudgets()
+        setEditingBudget(null)
+        setFormData({
+          name: '',
+          amount: '',
+          categoryId: '',
+          startDate: new Date().toISOString().split('T')[0],
+          endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0],
+        })
+      }
+    } catch (error) {
+      console.error('Error updating budget:', error)
     }
   }
 

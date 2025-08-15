@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Target, Calendar, TrendingUp, Edit3 } from 'lucide-react'
+import { Plus, Target, Calendar, TrendingUp, Edit3, Trash2, MoreHorizontal } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { LoadingSpinner } from './ui/loading-spinner'
 
@@ -23,6 +23,8 @@ export function FinancialGoals() {
   const [showAddGoal, setShowAddGoal] = useState(false)
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
   const [newAmount, setNewAmount] = useState('')
+  const [showMenu, setShowMenu] = useState<string | null>(null)
+  const [editingFullGoal, setEditingFullGoal] = useState<Goal | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     targetAmount: '',
@@ -97,6 +99,53 @@ export function FinancialGoals() {
     }
   }
 
+  const handleDeleteGoal = async (goalId: string) => {
+    if (!confirm('คุณแน่ใจหรือไม่ที่จะลบเป้าหมายนี้?')) return
+
+    try {
+      const response = await fetch(`/api/goals/${goalId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        fetchGoals()
+        setShowMenu(null)
+      }
+    } catch (error) {
+      console.error('Error deleting goal:', error)
+    }
+  }
+
+  const handleEditGoal = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!editingFullGoal) return
+
+    try {
+      const response = await fetch(`/api/goals/${editingFullGoal.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      if (response.ok) {
+        fetchGoals()
+        setEditingFullGoal(null)
+        setFormData({
+          name: '',
+          targetAmount: '',
+          currentAmount: '0',
+          description: '',
+          targetDate: '',
+        })
+      }
+    } catch (error) {
+      console.error('Error updating goal:', error)
+    }
+  }
+
   const getGoalStatus = (progress: number, daysLeft: number) => {
     if (progress >= 100) return { color: 'bg-green-500', text: 'สำเร็จ!' }
     if (daysLeft < 0) return { color: 'bg-red-500', text: 'หมดเวลา' }
@@ -143,12 +192,53 @@ export function FinancialGoals() {
 
             return (
               <div key={goal.id} className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium text-gray-900">{goal.name}</h4>
+                              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-medium text-gray-900">{goal.name}</h4>
+                <div className="flex items-center space-x-2">
                   <span className={`px-2 py-1 rounded-full text-xs text-white ${status.color}`}>
                     {status.text}
                   </span>
+                  
+                  {/* Action Menu */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowMenu(showMenu === goal.id ? null : goal.id)}
+                      className="p-1 rounded-full hover:bg-gray-200 transition-colors"
+                    >
+                      <MoreHorizontal className="h-4 w-4 text-gray-500" />
+                    </button>
+                    
+                    {showMenu === goal.id && (
+                      <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
+                        <button
+                          onClick={() => {
+                            setEditingFullGoal(goal)
+                            setFormData({
+                              name: goal.name,
+                              targetAmount: goal.targetAmount.toString(),
+                              currentAmount: goal.currentAmount.toString(),
+                              description: goal.description || '',
+                              targetDate: goal.targetDate.split('T')[0],
+                            })
+                            setShowMenu(null)
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                        >
+                          <Edit3 className="h-3 w-3" />
+                          <span>แก้ไข</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteGoal(goal.id)}
+                          className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          <span>ลบ</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
+              </div>
 
                 {goal.description && (
                   <p className="text-sm text-gray-600 mb-3">{goal.description}</p>
@@ -235,13 +325,15 @@ export function FinancialGoals() {
         </div>
       )}
 
-      {/* Add Goal Modal */}
-      {showAddGoal && (
+      {/* Add/Edit Goal Modal */}
+      {(showAddGoal || editingFullGoal) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">เพิ่มเป้าหมายใหม่</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              {editingFullGoal ? 'แก้ไขเป้าหมาย' : 'เพิ่มเป้าหมายใหม่'}
+            </h3>
             
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={editingFullGoal ? handleEditGoal : handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   ชื่อเป้าหมาย
@@ -312,7 +404,17 @@ export function FinancialGoals() {
               <div className="flex space-x-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setShowAddGoal(false)}
+                  onClick={() => {
+                    setShowAddGoal(false)
+                    setEditingFullGoal(null)
+                    setFormData({
+                      name: '',
+                      targetAmount: '',
+                      currentAmount: '0',
+                      description: '',
+                      targetDate: '',
+                    })
+                  }}
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                 >
                   ยกเลิก
@@ -321,7 +423,7 @@ export function FinancialGoals() {
                   type="submit"
                   className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
                 >
-                  สร้าง
+                  {editingFullGoal ? 'อัปเดต' : 'สร้าง'}
                 </button>
               </div>
             </form>
