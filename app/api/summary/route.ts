@@ -101,15 +101,112 @@ export async function GET(request: NextRequest) {
     const totalExpenses = expenses._sum.amount || 0
     const balance = totalIncome - totalExpenses
 
+    // Get today's transactions count
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+
+    const todayTransactionsCount = await prisma.transaction.count({
+      where: {
+        userId: user.id,
+        date: {
+          gte: today,
+          lt: tomorrow,
+        },
+      },
+    })
+
+    // Get recent transactions (last 10)
+    const recentTransactions = await prisma.transaction.findMany({
+      where: {
+        userId: user.id,
+      },
+      include: {
+        category: true,
+      },
+      orderBy: {
+        date: 'desc',
+      },
+      take: 10,
+    })
+
+    // Get total debt
+    const totalDebt = await prisma.debt.aggregate({
+      where: {
+        userId: user.id,
+        status: 'ACTIVE',
+      },
+      _sum: {
+        remainingAmount: true,
+      },
+    })
+
+    // Get budget usage (average percentage)
+    const budgets = await prisma.budget.findMany({
+      where: {
+        userId: user.id,
+        startDate: { lte: endDate },
+        endDate: { gte: startDate },
+      },
+    })
+
+    let totalBudgetUsage = 0
+    let budgetCount = 0
+
+    for (const budget of budgets) {
+      const budgetExpenses = await prisma.transaction.aggregate({
+        where: {
+          userId: user.id,
+          type: 'EXPENSE',
+          categoryId: budget.categoryId || undefined,
+          date: {
+            gte: new Date(Math.max(startDate.getTime(), new Date(budget.startDate).getTime())),
+            lte: new Date(Math.min(endDate.getTime(), new Date(budget.endDate).getTime())),
+          },
+        },
+        _sum: {
+          amount: true,
+        },
+      })
+
+      const spent = budgetExpenses._sum.amount || 0
+      const usage = budget.amount > 0 ? (spent / budget.amount) * 100 : 0
+      totalBudgetUsage += usage
+      budgetCount++
+    }
+
+    const averageBudgetUsage = budgetCount > 0 ? totalBudgetUsage / budgetCount : 0
+
+    // Get completed goals count
+    const goals = await prisma.goal.findMany({
+      where: {
+        userId: user.id,
+      },
+      select: {
+        currentAmount: true,
+        targetAmount: true,
+      },
+    })
+
+    const completedGoals = goals.filter(goal => goal.currentAmount >= goal.targetAmount).length
+
     return NextResponse.json({
       totalIncome,
-      totalExpenses,
+      totalExpense: totalExpenses,
+      totalExpenses, // Keep for backward compatibility
       balance,
       expensesByCategory,
       period: {
         month: targetMonth,
         year: targetYear,
       },
+      // New fields
+      todayTransactions: todayTransactionsCount,
+      recentTransactions,
+      totalDebt: totalDebt._sum.remainingAmount || 0,
+      budgetUsage: averageBudgetUsage,
+      completedGoals,
     })
   } catch (error) {
     console.error('Error fetching summary:', error)
