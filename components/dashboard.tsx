@@ -24,6 +24,7 @@ import { FinancialGoals } from './financial-goals'
 import { TransactionSearch } from './transaction-search'
 import { ExportData } from './export-data'
 import { DebtManagement } from './debt-management'
+import { CategoryManagement } from './category-management'
 import { LoadingSpinner } from './ui/loading-spinner'
 
 export function Dashboard() {
@@ -123,6 +124,7 @@ export function Dashboard() {
             {[
               { id: 'overview', name: 'ภาพรวม', icon: BarChart3 },
               { id: 'transactions', name: 'รายการ', icon: TrendingUp },
+              { id: 'categories', name: 'หมวดหมู่', icon: PieChart },
               { id: 'budget', name: 'งบประมาณ', icon: Target },
               { id: 'goals', name: 'เป้าหมาย', icon: Target },
               { id: 'debts', name: 'หนี้', icon: CreditCard },
@@ -170,6 +172,10 @@ export function Dashboard() {
 
         {activeTab === 'transactions' && (
           <TransactionSearch />
+        )}
+
+        {activeTab === 'categories' && (
+          <CategoryManagement />
         )}
 
         {activeTab === 'budget' && (

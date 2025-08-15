@@ -27,6 +27,14 @@ export async function GET(request: NextRequest) {
 
     const categories = await prisma.category.findMany({
       where,
+      include: {
+        _count: {
+          select: {
+            transactions: true,
+            budgets: true,
+          },
+        },
+      },
       orderBy: { name: 'asc' },
     })
 
