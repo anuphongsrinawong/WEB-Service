@@ -11,7 +11,9 @@ import {
   BarChart3,
   Settings,
   LogOut,
-  User
+  User,
+  Target,
+  CreditCard
 } from 'lucide-react'
 import { SummaryCards } from './summary-cards'
 import { TransactionList } from './transaction-list'
@@ -21,6 +23,7 @@ import { BudgetManagement } from './budget-management'
 import { FinancialGoals } from './financial-goals'
 import { TransactionSearch } from './transaction-search'
 import { ExportData } from './export-data'
+import { DebtManagement } from './debt-management'
 import { LoadingSpinner } from './ui/loading-spinner'
 
 export function Dashboard() {
@@ -122,6 +125,7 @@ export function Dashboard() {
               { id: 'transactions', name: 'รายการ', icon: TrendingUp },
               { id: 'budget', name: 'งบประมาณ', icon: Target },
               { id: 'goals', name: 'เป้าหมาย', icon: Target },
+              { id: 'debts', name: 'หนี้', icon: CreditCard },
               { id: 'export', name: 'ส่งออก', icon: TrendingDown },
             ].map((tab) => {
               const Icon = tab.icon
@@ -174,6 +178,10 @@ export function Dashboard() {
 
         {activeTab === 'goals' && (
           <FinancialGoals />
+        )}
+
+        {activeTab === 'debts' && (
+          <DebtManagement />
         )}
 
         {activeTab === 'export' && (

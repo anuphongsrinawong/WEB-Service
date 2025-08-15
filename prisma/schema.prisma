@@ -38,9 +38,9 @@ model Session {
 }
 
 model User {
-  id            String    @id @default(cuid())
+  id            String        @id @default(cuid())
   name          String?
-  email         String    @unique
+  email         String        @unique
   emailVerified DateTime?
   image         String?
   accounts      Account[]
@@ -49,8 +49,10 @@ model User {
   categories    Category[]
   budgets       Budget[]
   goals         Goal[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  debts         Debt[]
+  debtPayments  DebtPayment[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }
 
 model VerificationToken {
@@ -117,6 +119,38 @@ model Goal {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+model Debt {
+  id            String        @id @default(cuid())
+  name          String        // ชื่อหนี้ เช่น "สินเชื่อบ้าน", "บัตรเครดิต"
+  type          String        // "OWE" (เราเป็นหนี้คนอื่น) หรือ "LEND" (คนอื่นเป็นหนี้เรา)
+  totalAmount   Float         // จำนวนหนี้รวม
+  remainingAmount Float       // จำนวนหนี้คงเหลือ
+  interestRate  Float?        // อัตราดอกเบี้ย (% ต่อปี)
+  creditorName  String?       // ชื่อเจ้าหนี้/ลูกหนี้
+  description   String?       // รายละเอียดเพิ่มเติม
+  startDate     DateTime      // วันที่เริ่มหนี้
+  dueDate       DateTime?     // วันครบกำหนด
+  status        String        @default("ACTIVE") // "ACTIVE", "PAID_OFF", "OVERDUE"
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments      DebtPayment[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model DebtPayment {
+  id          String   @id @default(cuid())
+  amount      Float    // จำนวนเงินที่จ่าย
+  paymentDate DateTime // วันที่จ่าย
+  description String?  // หมายเหตุ
+  debtId      String
+  debt        Debt     @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 // Enums removed - using String instead for SQLite compatibility
