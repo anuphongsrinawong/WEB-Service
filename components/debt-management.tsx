@@ -540,9 +540,9 @@ export function DebtManagement() {
                       <div>
                         <span className="text-gray-500">ครบกำหนด:</span>
                         <p className={`font-medium ${
-                          debt.daysUntilDue !== null && debt.daysUntilDue < 0 
+                          debt.daysUntilDue !== null && debt.daysUntilDue !== undefined && debt.daysUntilDue < 0 
                             ? 'text-red-600' 
-                            : debt.daysUntilDue !== null && debt.daysUntilDue <= 30
+                            : debt.daysUntilDue !== null && debt.daysUntilDue !== undefined && debt.daysUntilDue <= 30
                               ? 'text-orange-600'
                               : 'text-gray-900'
                         }`}>

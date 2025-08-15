@@ -28,6 +28,14 @@ import { CategoryManagement } from './category-management'
 import { LoadingSpinner } from './ui/loading-spinner'
 import { formatCurrency } from '@/lib/utils'
 
+interface RecentActivity {
+  title: string
+  time: string
+  amount: number
+  icon: any
+  color: string
+}
+
 export function Dashboard() {
   const { data: session } = useSession()
   const [showAddTransaction, setShowAddTransaction] = useState(false)
@@ -296,7 +304,7 @@ export function Dashboard() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">กิจกรรมล่าสุด</h3>
                 <div className="space-y-4">
                   {getRecentActivities(summary).length > 0 ? (
-                    getRecentActivities(summary).map((activity, index) => (
+                    getRecentActivities(summary).map((activity: RecentActivity, index: number) => (
                       <div key={index} className="flex items-center space-x-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${activity.color}`}>
                           <activity.icon className="h-4 w-4 text-white" />
