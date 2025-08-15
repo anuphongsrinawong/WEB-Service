@@ -3,11 +3,5 @@
     "app/api/**/*.ts": {
       "maxDuration": 10
     }
-  },
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ]
+  }
 }
