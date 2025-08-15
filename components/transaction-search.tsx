@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Search, Filter, Calendar, TrendingUp, TrendingDown, X } from 'lucide-react'
+import { Search, Filter, Calendar, TrendingUp, TrendingDown, X, Edit3, Trash2, MoreHorizontal } from 'lucide-react'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { LoadingSpinner } from './ui/loading-spinner'
 
@@ -29,6 +29,7 @@ export function TransactionSearch() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [showFilters, setShowFilters] = useState(false)
+  const [showMenu, setShowMenu] = useState<string | null>(null)
   
   const [filters, setFilters] = useState({
     search: '',
@@ -108,6 +109,23 @@ export function TransactionSearch() {
       amountMax: '',
     })
     setPagination(prev => ({ ...prev, page: 1 }))
+  }
+
+  const handleDeleteTransaction = async (transactionId: string) => {
+    if (!confirm('คุณแน่ใจหรือไม่ที่จะลบรายการนี้?')) return
+
+    try {
+      const response = await fetch(`/api/transactions/${transactionId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        fetchTransactions()
+        setShowMenu(null)
+      }
+    } catch (error) {
+      console.error('Error deleting transaction:', error)
+    }
   }
 
   const hasActiveFilters = Object.values(filters).some(value => value !== '')
@@ -275,7 +293,7 @@ export function TransactionSearch() {
                 {transactions.map((transaction) => (
                   <div
                     key={transaction.id}
-                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors group"
                   >
                     <div className="flex items-center space-x-3">
                       <div className={`p-2 rounded-full ${
@@ -313,13 +331,48 @@ export function TransactionSearch() {
                         </div>
                       </div>
                     </div>
-                    <div className={`font-semibold ${
-                      transaction.type === 'INCOME' 
-                        ? 'text-green-600' 
-                        : 'text-red-600'
-                    }`}>
-                      {transaction.type === 'INCOME' ? '+' : '-'}
-                      {formatCurrency(transaction.amount)}
+                    <div className="flex items-center space-x-2">
+                      <div className={`font-semibold ${
+                        transaction.type === 'INCOME' 
+                          ? 'text-green-600' 
+                          : 'text-red-600'
+                      }`}>
+                        {transaction.type === 'INCOME' ? '+' : '-'}
+                        {formatCurrency(transaction.amount)}
+                      </div>
+                      
+                      {/* Action Menu */}
+                      <div className="relative opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => setShowMenu(showMenu === transaction.id ? null : transaction.id)}
+                          className="p-1 rounded-full hover:bg-gray-200 transition-colors"
+                        >
+                          <MoreHorizontal className="h-4 w-4 text-gray-500" />
+                        </button>
+                        
+                        {showMenu === transaction.id && (
+                          <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
+                            <button
+                              onClick={() => {
+                                // TODO: Implement edit functionality
+                                console.log('Edit transaction:', transaction.id)
+                                setShowMenu(null)
+                              }}
+                              className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                            >
+                              <Edit3 className="h-3 w-3" />
+                              <span>แก้ไข</span>
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTransaction(transaction.id)}
+                              className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                              <span>ลบ</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}

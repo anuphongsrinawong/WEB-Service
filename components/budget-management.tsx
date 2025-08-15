@@ -213,6 +213,45 @@ export function BudgetManagement() {
                     <span className={`px-2 py-1 rounded-full text-xs text-white ${status.color}`}>
                       {status.text}
                     </span>
+                    
+                    {/* Action Menu */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowMenu(showMenu === budget.id ? null : budget.id)}
+                        className="p-1 rounded-full hover:bg-gray-200 transition-colors"
+                      >
+                        <MoreHorizontal className="h-4 w-4 text-gray-500" />
+                      </button>
+                      
+                      {showMenu === budget.id && (
+                        <div className="absolute right-0 top-8 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-[120px]">
+                          <button
+                            onClick={() => {
+                              setEditingBudget(budget)
+                              setFormData({
+                                name: budget.name,
+                                amount: budget.amount.toString(),
+                                categoryId: budget.categoryId || '',
+                                startDate: budget.startDate.split('T')[0],
+                                endDate: budget.endDate.split('T')[0],
+                              })
+                              setShowMenu(null)
+                            }}
+                            className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                          >
+                            <Edit3 className="h-3 w-3" />
+                            <span>แก้ไข</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteBudget(budget.id)}
+                            className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                            <span>ลบ</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -249,13 +288,15 @@ export function BudgetManagement() {
         </div>
       )}
 
-      {/* Add Budget Modal */}
-      {showAddBudget && (
+      {/* Add/Edit Budget Modal */}
+      {(showAddBudget || editingBudget) && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">เพิ่มงบประมาณใหม่</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              {editingBudget ? 'แก้ไขงบประมาณ' : 'เพิ่มงบประมาณใหม่'}
+            </h3>
             
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={editingBudget ? handleEditBudget : handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   ชื่องบประมาณ
@@ -331,7 +372,17 @@ export function BudgetManagement() {
               <div className="flex space-x-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => setShowAddBudget(false)}
+                  onClick={() => {
+                    setShowAddBudget(false)
+                    setEditingBudget(null)
+                    setFormData({
+                      name: '',
+                      amount: '',
+                      categoryId: '',
+                      startDate: new Date().toISOString().split('T')[0],
+                      endDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0],
+                    })
+                  }}
                   className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                 >
                   ยกเลิก
@@ -340,7 +391,7 @@ export function BudgetManagement() {
                   type="submit"
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
-                  สร้าง
+                  {editingBudget ? 'อัปเดต' : 'สร้าง'}
                 </button>
               </div>
             </form>
