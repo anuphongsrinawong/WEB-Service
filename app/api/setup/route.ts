@@ -29,21 +29,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Categories already exist' })
     }
 
-    // Create default categories for the user
-    const categories = await Promise.all(
-      defaultCategories.map(category =>
-        prisma.category.create({
-          data: {
+    // Create default categories for the user using upsert (safer)
+    const categories = []
+    
+    for (const category of defaultCategories) {
+      try {
+        const createdCategory = await prisma.category.upsert({
+          where: {
+            name_userId: {
+              name: category.name,
+              userId: user.id,
+            },
+          },
+          update: {}, // ไม่อัปเดตถ้ามีอยู่แล้ว
+          create: {
             ...category,
             userId: user.id,
           },
         })
-      )
-    )
+        categories.push(createdCategory)
+      } catch (error) {
+        console.log(`Category ${category.name} already exists for user`)
+      }
+    }
 
     return NextResponse.json({ 
-      message: 'Default categories created successfully',
-      categories 
+      message: 'Default categories setup completed',
+      categoriesCreated: categories.length
     })
   } catch (error) {
     console.error('Error setting up default categories:', error)

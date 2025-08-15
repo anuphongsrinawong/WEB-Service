@@ -17,6 +17,10 @@ import { SummaryCards } from './summary-cards'
 import { TransactionList } from './transaction-list'
 import { ExpenseChart } from './expense-chart'
 import { AddTransactionModal } from './add-transaction-modal'
+import { BudgetManagement } from './budget-management'
+import { FinancialGoals } from './financial-goals'
+import { TransactionSearch } from './transaction-search'
+import { ExportData } from './export-data'
 import { LoadingSpinner } from './ui/loading-spinner'
 
 export function Dashboard() {
@@ -24,6 +28,7 @@ export function Dashboard() {
   const [showAddTransaction, setShowAddTransaction] = useState(false)
   const [summary, setSummary] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('overview')
 
   const fetchSummary = async () => {
     try {
@@ -109,21 +114,71 @@ export function Dashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Summary Cards */}
-        <SummaryCards summary={summary} />
-
-        {/* Charts and Recent Transactions */}
-        <div className="grid lg:grid-cols-3 gap-8 mt-8">
-          {/* Charts */}
-          <div className="lg:col-span-2 space-y-8">
-            <ExpenseChart data={summary?.expensesByCategory || []} />
-          </div>
-
-          {/* Recent Transactions */}
-          <div className="space-y-8">
-            <TransactionList />
-          </div>
+        {/* Navigation Tabs */}
+        <div className="mb-8">
+          <nav className="flex space-x-8">
+            {[
+              { id: 'overview', name: 'ภาพรวม', icon: BarChart3 },
+              { id: 'transactions', name: 'รายการ', icon: TrendingUp },
+              { id: 'budget', name: 'งบประมาณ', icon: Target },
+              { id: 'goals', name: 'เป้าหมาย', icon: Target },
+              { id: 'export', name: 'ส่งออก', icon: TrendingDown },
+            ].map((tab) => {
+              const Icon = tab.icon
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+                    activeTab === tab.id
+                      ? 'bg-blue-100 text-blue-700 border-2 border-blue-200'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{tab.name}</span>
+                </button>
+              )
+            })}
+          </nav>
         </div>
+
+        {/* Tab Content */}
+        {activeTab === 'overview' && (
+          <>
+            {/* Summary Cards */}
+            <SummaryCards summary={summary} />
+
+            {/* Charts and Recent Transactions */}
+            <div className="grid lg:grid-cols-3 gap-8 mt-8">
+              {/* Charts */}
+              <div className="lg:col-span-2 space-y-8">
+                <ExpenseChart data={summary?.expensesByCategory || []} />
+              </div>
+
+              {/* Recent Transactions */}
+              <div className="space-y-8">
+                <TransactionList />
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'transactions' && (
+          <TransactionSearch />
+        )}
+
+        {activeTab === 'budget' && (
+          <BudgetManagement />
+        )}
+
+        {activeTab === 'goals' && (
+          <FinancialGoals />
+        )}
+
+        {activeTab === 'export' && (
+          <ExportData />
+        )}
       </div>
 
       {/* Add Transaction Modal */}

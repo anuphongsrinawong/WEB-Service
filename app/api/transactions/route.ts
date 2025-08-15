@@ -24,10 +24,35 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '10')
     const type = searchParams.get('type')
     const categoryId = searchParams.get('categoryId')
+    const search = searchParams.get('search')
+    const dateFrom = searchParams.get('dateFrom')
+    const dateTo = searchParams.get('dateTo')
+    const amountMin = searchParams.get('amountMin')
+    const amountMax = searchParams.get('amountMax')
 
     const where: any = { userId: user.id }
+    
     if (type) where.type = type
     if (categoryId) where.categoryId = categoryId
+    
+    if (search) {
+      where.description = {
+        contains: search,
+        mode: 'insensitive'
+      }
+    }
+    
+    if (dateFrom || dateTo) {
+      where.date = {}
+      if (dateFrom) where.date.gte = new Date(dateFrom)
+      if (dateTo) where.date.lte = new Date(dateTo)
+    }
+    
+    if (amountMin || amountMax) {
+      where.amount = {}
+      if (amountMin) where.amount.gte = parseFloat(amountMin)
+      if (amountMax) where.amount.lte = parseFloat(amountMax)
+    }
 
     const transactions = await prisma.transaction.findMany({
       where,
